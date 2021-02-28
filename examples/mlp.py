@@ -186,7 +186,7 @@ def test_run():
 
 def run():
     """Run the model."""
-    run_helper(100, 10, 5, (10, 50, 1))
+    run_helper(1, 10, 5, (10, 50, 1))
 
 
 if __name__ == "__main__":

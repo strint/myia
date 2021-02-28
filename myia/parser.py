@@ -308,6 +308,7 @@ class Parser:
     def parse(self) -> Graph:
         """Parse the function into a Myia graph."""
         src0 = inspect.getsource(self.function)
+        print(src0)
         src = textwrap.dedent(src0)
         # We need col_offset to compensate for the dedent
         self.col_offset = len(src0.split("\n")[0]) - len(src.split("\n")[0])
