@@ -56,6 +56,7 @@ class MyiaFunction:
         self.fn = fn
         self.alias_tracker = alias_tracker
         self.specialize_values = set(specialize_values)
+        # 创建一个编译的pipe
         self.pip = pipeline.configure(
             {
                 "universal": use_universe,
@@ -64,10 +65,13 @@ class MyiaFunction:
                 "return_backend": return_backend,
             }
         )
+        print("fn {} api.MyFunction.__init__::self.pip: {}".format(self.fn.__name__, self.pip))
         self._cache = {}
         self.latest = None
         if tracer is ABSENT:
+            # myia tracer
             mt = os.environ.get("MYIATRACER")
+            print("fn {} api.MyFunction.__init__::mt: {}".format(self.fn.__name__, mt))
             if mt:
                 pairs = resolve_tracers(mt)
                 tracers = [fn(*args) for fn, args in pairs]
@@ -83,6 +87,8 @@ class MyiaFunction:
         cached version.
         """
         argnames = inspect.getfullargspec(self.fn).args
+        print("fn {} api.MyFunction.specialize::argnames: {}".format(self.fn.__name__, argnames))
+        print("fn {} api.MyFunction.specialize::args: {}".format(self.fn.__name__, list(zip(argnames, args))))
         n1 = len(argnames)
         n2 = len(args)
         if n1 != n2:
@@ -99,6 +105,7 @@ class MyiaFunction:
             )
             for arg, name in zip(args, argnames)
         )
+        print("fn {} api.MyFunction.specialize::argspec: {}\n\n".format(self.fn.__name__, argspec))
 
         if argspec not in self._cache:
             if self.tracer:
@@ -110,20 +117,25 @@ class MyiaFunction:
             )
             if self.tracer:
                 self.tracer.__exit__(None, None, None)
+        print("fn {} api.MyFunction.specialize::self._cache[argspec]: {}".format(self.fn.__name__, self._cache[argspec]))
         return self._cache[argspec]
 
     def compile(self, args):
         """Returns a function specialized for the given args."""
+        # 编译是对特定args的特化
         self.latest = self.specialize(args)["output"]
         return self.latest
 
+    # @myia 的function被调用时
     def __call__(self, *args):
         """Call the function on the given args."""
+        # 返回最后一个编译的结果
         if self.latest:
             try:
                 return self.latest(*args)
             except MyiaInputTypeError:
                 pass
+        # 编译
         return self.compile(args)(*args)
 
     def to_device(self, v, *, broaden=True, vm_t=None, orig_t=None):
@@ -177,6 +189,8 @@ def myia(
         pipeline: Pipeline to use
 
     """
+    # 实例化一个MyiaFunction
+    print("fn {} api.MyFunction.__init__".format(fn.__name__))
     return MyiaFunction(
         fn,
         specialize_values,
